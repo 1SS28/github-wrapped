@@ -1,8 +1,9 @@
-"""What a render costs in Magic Hour credits, worked out before anything is spent.
+"""What the voice costs in Magic Hour credits, worked out before anything is spent.
 
-The only paid step is the voice: AI Voice Cloner, 0.1 credit per character, rounded up per
-request (docs.magichour.ai/api-reference/models, checked 2026-10-14). The animation is drawn
-locally. A 60 s script is about 850 characters: ~85 credits.
+AI Voice Generator and AI Voice Cloner both charge 0.1 credit per character, rounded up per
+request (docs.magichour.ai/api-reference/models, checked 2026-10-14). A 60 s script is about
+850 characters: ~85 credits. In the wrapped style the illustrations and animated clips cost
+more on top (`art.estimate_credits`); `Pipeline._show_estimate` adds the two together.
 """
 
 from __future__ import annotations
