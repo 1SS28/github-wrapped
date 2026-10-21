@@ -195,13 +195,10 @@ class Pipeline:
                     stats, script, sorted((b.highlight for b in beats), key=lambda h: -h.score), workdir / "end.png",
                     theme=theme, persona_title=self.persona.title, repo_url=self.settings.roast_repo_url,
                 )
-                captions = compose.supports_captions()
-                if not captions:
-                    self.console.print("[yellow]This ffmpeg has no libass, so captions are left out (macOS: brew install ffmpeg-full).[/]")
                 name = f"roast_{stats.login}_{self.persona.key}_{voices.slug(self.voice)}{'_preview' if opts.preview else ''}.mp4"
                 return render_ops.render_video(
                     stats=stats, beats=beats, track=track, end_card=end_card, dest=opts.out / name, theme=theme,
-                    narrator=self._narrator_label(), title=opts.title, captions=captions, style=opts.style,
+                    narrator=self._narrator_label(), title=opts.title, style=opts.style,
                 )
         except (MagicHourError, *compose_errors) as exc:
             raise PipelineError(str(exc)) from exc

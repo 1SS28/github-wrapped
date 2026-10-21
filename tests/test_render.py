@@ -28,12 +28,18 @@ def test_words_share_out_each_line_by_length():
     assert all(a.end <= b.start + 1e-6 for a, b in zip(words, words[1:]))
 
 
-def test_captions_highlight_one_word_at_a_time_and_stop_with_the_speech():
-    track = VoiceTrack(audio=Path("x.wav"), duration=4.6, lines=[TimedLine(text="Sit down. Now.", start=0.0, end=2.0)])
-    ass = render.build_ass(render.spread_words(track.lines), speech_end=track.duration, theme=cards.THEMES["professor"])
-    captions = [line for line in ass.splitlines() if line.startswith("Dialogue") and ",Caption," in line]
-    assert len(captions) == 3 and "SIT" in captions[0] and "NOW." in captions[2]
-    assert "CAPTION" not in ass.split("[Events]")[0].upper().replace("STYLE: CAPTION", "")  # one style
+def test_a_line_is_set_in_the_frame_word_by_word_and_shrinks_to_fit():
+    from PIL import ImageDraw
+
+    draw = ImageDraw.Draw(Image.new("RGB", (cards.WIDTH, cards.FRAME_HEIGHT)))
+    short = render.set_line(render.spread_words([TimedLine(text="Sit down. Now.", start=0.0, end=2.0)]), draw)
+    assert [w.text for w in short.words] == ["Sit", "down.", "Now."] and short.size == render.LINE_SIZES[0]
+    assert short.words[0].start == 0.0 and short.words[2].start > short.words[1].start
+
+    long = render.set_line(render.spread_words([TimedLine(text="word " * 80, start=0.0, end=20.0)]), draw)
+    assert long.size < short.size
+    assert all(cards.PAD <= w.x < cards.WIDTH - cards.PAD for w in long.words)
+    assert max(w.y for w in long.words) < render.LINE_BOTTOM
 
 
 def test_silent_track_times_lines_from_their_word_counts(tmp_path):

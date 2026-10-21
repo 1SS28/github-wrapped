@@ -22,7 +22,6 @@ from typing import Any, Callable
 
 from pydantic import BaseModel
 
-from core import compose
 from core.costs import CostLedger
 from core.llm import LLM
 from core.magichour import MagicHour
@@ -313,8 +312,7 @@ class Service:
                                                 theme=theme, persona_title=PERSONAS[persona].title, repo_url=self.settings.roast_repo_url)
             narrator = PERSONAS[persona].title if voice == voices.ORIGINAL else f"{PERSONAS[persona].title} · voice of {voice}"
             render_ops.render_video(stats=stats, beats=beats, track=track, end_card=end_card, dest=dest, theme=theme,
-                                    narrator=narrator, title=os.environ.get("ROAST_TITLE", "GitHub Wrapped"),
-                                    captions=compose.supports_captions())
+                                    narrator=narrator, title=os.environ.get("ROAST_TITLE", "GitHub Wrapped"))
         return str(dest.relative_to(self.out_dir))
 
 

@@ -1,4 +1,4 @@
-# The engine as a web service: Python + ffmpeg (with libass for captions) + fonts.
+# The engine as a web service: Python + ffmpeg + fonts (Liberation Serif is the video's serif, built from the site's Tinos).
 FROM python:3.12-slim-bookworm
 
 RUN apt-get update -qq \

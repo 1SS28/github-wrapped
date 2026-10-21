@@ -1,7 +1,13 @@
-"""Themes, fonts and the end card. The animated scenes themselves are in scenes.py."""
+"""Themes, fonts, the contribution graph and the end card. The animated scenes are in scenes.py.
+
+The look follows the website's player and share card: GitHub's dark canvas, the real contribution
+graph in GitHub's greens, figures in a monospace face, the verdict and the narrator's lines in a
+serif (Tinos on the site; Liberation Serif, which is built from Tinos, or Times New Roman here).
+"""
 
 from __future__ import annotations
 
+import functools
 import os
 from dataclasses import dataclass
 from pathlib import Path
@@ -10,75 +16,106 @@ from PIL import Image, ImageDraw, ImageFont
 
 from roastmygithub.highlights import Highlight
 from roastmygithub.script import Script
-from roastmygithub.stats import Stats
+from roastmygithub.stats import DayCount, Stats
 
 WIDTH, FRAME_HEIGHT = 1080, 1920
 MARGIN = 80
-TONE_TAG = {"roast": ("ROAST", (248, 81, 73)), "compliment": ("PROPS", (63, 185, 80))}
+PAD = 56  # side margin of the frame chrome, the art scenes and the end card, as on the site
+
+CANVAS = (13, 17, 23)  # GitHub dark: #0d1117
+BORDER = (48, 54, 61)  # #30363d
+TEXT = (230, 237, 243)  # #e6edf3
+SOFT = (201, 209, 217)  # #c9d1d9
+DIM = (139, 148, 158)  # #8b949e
+# The tone of a beat, written as a word in its colour (no badge): GitHub's diff red and green.
+TONE = {"roast": ("roast", (248, 81, 73)), "compliment": ("props", (63, 185, 80))}
+# GitHub's contribution-graph greens, from an empty day to the busiest.
+LEVELS = [(22, 27, 34), (14, 68, 41), (0, 109, 50), (38, 166, 65), (57, 211, 83)]
 
 _FONTS = {
-    True: [
+    "sans-bold": [
         "/System/Library/Fonts/Supplemental/Arial Bold.ttf",
         "/Library/Fonts/Arial Bold.ttf",
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
         "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
         "C:/Windows/Fonts/arialbd.ttf",
     ],
-    False: [
+    "sans": [
         "/System/Library/Fonts/Supplemental/Arial.ttf",
         "/Library/Fonts/Arial.ttf",
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
         "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
         "C:/Windows/Fonts/arial.ttf",
     ],
+    "serif-bold": [
+        "/usr/share/fonts/truetype/liberation/LiberationSerif-Bold.ttf",
+        "/System/Library/Fonts/Supplemental/Times New Roman Bold.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSerif-Bold.ttf",
+        "C:/Windows/Fonts/timesbd.ttf",
+    ],
+    "serif": [
+        "/usr/share/fonts/truetype/liberation/LiberationSerif-Regular.ttf",
+        "/System/Library/Fonts/Supplemental/Times New Roman.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf",
+        "C:/Windows/Fonts/times.ttf",
+    ],
+    "mono": [
+        "/System/Library/Fonts/SFNSMono.ttf",
+        "/System/Library/Fonts/Menlo.ttc",
+        "/usr/share/fonts/truetype/liberation/LiberationMono-Regular.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf",
+        "C:/Windows/Fonts/consola.ttf",
+    ],
 }
+_ENV = {"sans-bold": "ROAST_FONT_BOLD", "sans": "ROAST_FONT", "serif-bold": "ROAST_FONT_SERIF_BOLD", "serif": "ROAST_FONT_SERIF", "mono": "ROAST_FONT_MONO"}
 
 
 @dataclass(frozen=True)
 class Theme:
-    top: tuple[int, int, int]  # background gradient
+    top: tuple[int, int, int]  # background (flat: top and bottom are the same canvas)
     bottom: tuple[int, int, int]
     accent: tuple[int, int, int]
-    text: tuple[int, int, int] = (230, 237, 243)
-    dim: tuple[int, int, int] = (139, 148, 158)
+    text: tuple[int, int, int] = TEXT
+    dim: tuple[int, int, int] = DIM
 
     @property
     def accent_hex(self) -> str:
         return "%02X%02X%02X" % self.accent
 
 
-# GitHub's dark palette (canvas #0d1117, panel #161b22) with one accent per narrator.
+# GitHub's dark canvas with one accent per narrator, the same ones the site uses.
 THEMES = {
-    "professor": Theme(top=(22, 27, 34), bottom=(13, 17, 23), accent=(210, 153, 34)),  # amber
-    "hype": Theme(top=(22, 27, 34), bottom=(13, 17, 23), accent=(88, 166, 255)),  # blue
-    "senior": Theme(top=(22, 27, 34), bottom=(13, 17, 23), accent=(63, 185, 80)),  # green
+    "professor": Theme(top=CANVAS, bottom=CANVAS, accent=(210, 153, 34)),  # amber
+    "hype": Theme(top=CANVAS, bottom=CANVAS, accent=(88, 166, 255)),  # blue
+    "senior": Theme(top=CANVAS, bottom=CANVAS, accent=(63, 185, 80)),  # green
 }
 
 
-def font(size: int, bold: bool = True) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
-    for candidate in (os.environ.get("ROAST_FONT_BOLD" if bold else "ROAST_FONT"), *_FONTS[bold]):
+@functools.lru_cache(maxsize=None)
+def _face(kind: str, size: int) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
+    for candidate in (os.environ.get(_ENV[kind]), *_FONTS[kind]):
         if candidate and Path(candidate).exists():
             return ImageFont.truetype(candidate, size)
     return ImageFont.load_default(size)
 
 
-def _background(theme: Theme, height: int) -> Image.Image:
-    column = Image.new("RGB", (1, height))
-    for y in range(height):
-        k = y / max(1, height - 1)
-        column.putpixel((0, y), tuple(round(a + (b - a) * k) for a, b in zip(theme.top, theme.bottom)))
-    return column.resize((WIDTH, height))
+def font(size: int, bold: bool = True) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
+    return _face("sans-bold" if bold else "sans", size)
 
 
-def _fit(draw: ImageDraw.ImageDraw, text: str, max_width: int, start: int, smallest: int, bold: bool = True):
-    """The largest font from `start` down to `smallest` at which `text` fits on one line."""
-    size = start
-    while size > smallest and draw.textlength(text, font=font(size, bold)) > max_width:
-        size -= 6
-    return font(size, bold)
+def serif(size: int, bold: bool = False) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
+    return _face("serif-bold" if bold else "serif", size)
 
 
-def _wrap(draw: ImageDraw.ImageDraw, text: str, face, max_width: int) -> list[str]:
+def mono(size: int) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
+    return _face("mono", size)
+
+
+def span(stats: Stats) -> str:
+    return f"{stats.since:%b %Y} – {stats.until:%b %Y}"
+
+
+def wrap_text(draw: ImageDraw.ImageDraw, text: str, face, max_width: float) -> list[str]:
     lines: list[str] = []
     for word in text.split():
         trial = f"{lines[-1]} {word}" if lines else word
@@ -89,50 +126,95 @@ def _wrap(draw: ImageDraw.ImageDraw, text: str, face, max_width: int) -> list[st
     return lines
 
 
-def _centred(draw: ImageDraw.ImageDraw, y: int, text: str, face, fill) -> int:
-    """Draw one centred line with its top at `y`; returns the y below it."""
-    left, top, right, bottom = draw.textbbox((0, 0), text, font=face)
-    draw.text(((WIDTH - (right - left)) / 2 - left, y - top), text, font=face, fill=fill)
-    return y + (bottom - top)
+def level(count: int, top: int) -> tuple[int, int, int]:
+    """The site's rule: empty, or one of four greens by share of the busiest day."""
+    return LEVELS[min(4, 1 + (3 * count) // max(1, top))] if count > 0 else LEVELS[0]
 
 
-def _pill(draw: ImageDraw.ImageDraw, x: int, y: int, text: str, colour) -> None:
-    face = font(34)
-    width = draw.textlength(text, font=face)
-    draw.rounded_rectangle((x, y, x + width + 48, y + 60), radius=30, fill=colour)
-    draw.text((x + 24, y + 30), text, font=face, fill=(12, 14, 18), anchor="lm")
+def calendar_cells(days: list[DayCount], x: float, y: float, width: float, *, gap: int = 5, strip_gap: int = 26) -> tuple[list[tuple[float, float, float, DayCount]], float]:
+    """The year as GitHub draws it, Sunday-first weeks in two half-year strips across `width`.
+
+    Returns (x, y, size, day) per cell and the y just below the second strip.
+    """
+    if not days:
+        return [], y
+    first = days[0].date
+    lead = (first.weekday() + 1) % 7  # Sunday = 0
+    weeks = (lead + len(days) + 6) // 7
+    half = (weeks + 1) // 2
+    cell = (width - (half - 1) * gap) / half
+    pitch = cell + gap
+    cells = []
+    for n, day in enumerate(days):
+        week, row = divmod(lead + n, 7)
+        strip, column = divmod(week, half)
+        cells.append((x + column * pitch, y + strip * (7 * pitch - gap + strip_gap) + row * pitch, cell, day))
+    return cells, y + 2 * (7 * pitch - gap) + strip_gap
+
+
+def draw_calendar(draw: ImageDraw.ImageDraw, days: list[DayCount], x: float, y: float, width: float, **kw) -> float:
+    cells, bottom = calendar_cells(days, x, y, width, **kw)
+    top = max((d.count for d in days), default=1)
+    for cx, cy, size, day in cells:
+        draw.rounded_rectangle((cx, cy, cx + size, cy + size), radius=max(2, round(size / 7)), fill=level(day.count, top))
+    return bottom
 
 
 def render_end_card(stats: Stats, script: Script, shown: list[Highlight], dest: Path, *, theme: Theme, persona_title: str, repo_url: str) -> Path:
-    """Full-frame closing card: who, the verdict, their top stats, and where to make your own."""
-    image = _background(theme, FRAME_HEIGHT)
+    """The closing frame, laid out like the site's share card (without the rank, which stays on the site).
+
+    A mono header line, the contribution graph as the picture, the verdict as a serif headline,
+    the figures as a ruled list, and where to make your own.
+    """
+    image = Image.new("RGB", (WIDTH, FRAME_HEIGHT), CANVAS)
     draw = ImageDraw.Draw(image)
-    inner = WIDTH - 2 * MARGIN
-    draw.rectangle((0, 0, WIDTH, 12), fill=theme.accent)
-    y = _centred(draw, 150, "GITHUB WRAPPED", font(44), theme.dim) + 60
-    y = _centred(draw, y, f"@{stats.login}", _fit(draw, f"@{stats.login}", inner, 120, 60), theme.text) + 34
-    y = _centred(draw, y, f"{stats.since:%b %Y} – {stats.until:%b %Y}", font(40, bold=False), theme.dim) + 80
+    inner = WIDTH - 2 * PAD
+    y = 100
+    draw.text((PAD, y), f"{stats.login} / {span(stats)}", font=mono(28), fill=DIM)
+    draw.text((WIDTH - PAD, y), "github wrapped", font=mono(28), fill=DIM, anchor="ra")
+
+    y = draw_calendar(draw, stats.calendar, PAD, y + 70, inner)
+    draw.text((PAD, y + 22), f"{stats.total_contributions:,} contributions · {stats.active_days} active days", font=mono(28), fill=DIM)
+    y += 130
+
     if script.verdict:
-        verdict = f"“{script.verdict}”"
-        y = _centred(draw, y, verdict, _fit(draw, verdict, inner, 92, 48), theme.accent) + 26
-        y = _centred(draw, y, f"verdict of {persona_title}", font(36, bold=False), theme.dim) + 80
+        size = 112
+        while size > 64:
+            face = serif(size, bold=True)
+            lines = wrap_text(draw, script.verdict, face, inner)
+            if len(lines) <= 3:
+                break
+            size -= 8
+        for line in lines:
+            draw.text((PAD, y), line, font=face, fill=TEXT, anchor="la")
+            y += round(size * 0.98)
+        y += 24
+    draw.text((PAD, y), persona_title.lower(), font=font(38), fill=theme.accent)
+    y += 90
 
-    row_height = 190
+    footer = FRAME_HEIGHT - 260  # the list stops above the address, however long the verdict ran
+    draw.line((PAD, y, WIDTH - PAD, y), fill=BORDER, width=2)
+    value_face, label_face = mono(64), font(36, bold=False)
     for highlight in shown[:4]:
-        draw.rounded_rectangle((MARGIN, y, WIDTH - MARGIN, y + row_height - 26), radius=28, fill=tuple(min(255, c + 16) for c in theme.top))
-        value_face = _fit(draw, highlight.value, 330, 100, 44)
-        draw.text((MARGIN + 44, y + (row_height - 26) / 2), highlight.value, font=value_face, fill=theme.accent, anchor="lm")
-        label_face = font(38, bold=False)
-        lines = _wrap(draw, highlight.label, label_face, inner - 430)[:2]
-        top = y + (row_height - 26) / 2 - (len(lines) - 1) * 24
+        value = highlight.value
+        while draw.textlength(value, font=value_face) > 330 and len(value) > 3:
+            value_face = mono(value_face.size - 6)
+        lines = wrap_text(draw, highlight.label, label_face, inner - 380)[:2]
+        row = max(124, 60 + 46 * len(lines))
+        if y + row > footer:
+            break
+        middle = y + row / 2
+        draw.text((PAD, middle), highlight.value, font=value_face, fill=TEXT, anchor="lm")
         for n, line in enumerate(lines):
-            draw.text((MARGIN + 410, top + n * 48), line, font=label_face, fill=theme.text, anchor="lm")
-        y += row_height
+            draw.text((PAD + 380, middle + (n - (len(lines) - 1) / 2) * 46), line, font=label_face, fill=SOFT, anchor="lm")
+        y += row
+        draw.line((PAD, y, WIDTH - PAD, y), fill=BORDER, width=2)
+        value_face = mono(64)
 
-    y = max(y + 50, FRAME_HEIGHT - 330)
-    y = _centred(draw, y, "Make yours", font(72), theme.text) + 34
-    _centred(draw, y, repo_url, _fit(draw, repo_url, inner, 48, 30, bold=False), theme.accent)
-    _centred(draw, FRAME_HEIGHT - 90, "made with Magic Hour", font(32, bold=False), theme.dim)
+    bottom = FRAME_HEIGHT - 110
+    draw.text((PAD, bottom - 52), repo_url, font=mono(34), fill=TEXT, anchor="ls")
+    draw.text((PAD, bottom), "made with Magic Hour", font=mono(26), fill=DIM, anchor="ls")
     dest.parent.mkdir(parents=True, exist_ok=True)
     image.save(dest)
     return dest
+

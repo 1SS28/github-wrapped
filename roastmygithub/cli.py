@@ -152,8 +152,7 @@ def doctor() -> None:
         line(False, "MAGIC_HOUR_API_KEY", "missing (only needed to render; --dry-run works without it)", required=False)
     try:
         binary = compose.ffmpeg_bin()
-        captions = compose.supports_captions()
-        line(captions, "ffmpeg", binary + ("" if captions else " (no libass: install ffmpeg-full or set FFMPEG_BIN)"), required=False)
+        line(True, "ffmpeg", binary, required=False)
     except compose.FFmpegError as exc:
         line(False, "ffmpeg", str(exc), required=False)
     from roastmygithub.personas import PERSONAS
