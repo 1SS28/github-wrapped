@@ -28,7 +28,7 @@ class Settings(BaseSettings):
     roast_timezone: str | None = None
 
     # Shown on the end card under "Make yours".
-    roast_repo_url: str = "github.com/1SS28/roastmygithub"
+    roast_repo_url: str = "github-wrapped-2026.vercel.app"  # under "Make yours" on the video end card: the site, not the repo
 
     magic_hour_plan: str = "auto"
     magic_hour_credits_per_usd: float | None = None

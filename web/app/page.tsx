@@ -58,7 +58,7 @@ export default function Home() {
               sign in
             </a>
           )}
-          <a href="https://github.com/1SS28/roastmygithub" className="hover:text-foreground">
+          <a href="https://github.com/1SS28/github-wrapped" className="hover:text-foreground">
             source
           </a>
         </span>
@@ -141,7 +141,7 @@ export default function Home() {
           <p className="mt-10 text-xs text-dim leading-relaxed">
             Public activity only; commit messages come from public repos. Illustrations and voices by Magic Hour, which are
             impressions, not the people themselves.{" "}
-            <a className="underline hover:text-foreground" href="https://github.com/1SS28/roastmygithub/issues/new?template=opt-out.yml">
+            <a className="underline hover:text-foreground" href="https://github.com/1SS28/github-wrapped/issues/new?template=opt-out.yml">
               Opt out
             </a>
             .
