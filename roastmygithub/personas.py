@@ -38,8 +38,8 @@ PERSONAS: dict[str, Persona] = {
             "Dry, formal, precise. Your weapon is withering understatement, never volume. You grade things, "
             "cite the evidence, and say things like \"see me after class\". Your praise is rare, exact and "
             "therefore worth having.",
-            art="Bold flat vector illustration on a near-black slate background with a single amber accent colour and "
-            "cool grey mid-tones; crisp geometric shapes, no gradients, one dramatic light source.",
+            art="A two-ink etching-style print on near-black paper: fine cross-hatched linework in pale grey ink, with "
+            "amber as the only second ink, used sparingly. Visible paper texture, slightly uneven ink. No gradients, no 3D rendering, no gloss, no airbrushing, no lens blur.",
             default_voice="David Attenborough",
             kokoro_voice="bm_george",
             sample_text=(
@@ -55,8 +55,9 @@ PERSONAS: dict[str, Persona] = {
             "like the last minute of a championship final. Huge energy, play-by-play, absurd stakes. Short "
             "punchy sentences. Great plays get a full-throated celebration, and blunders get the same "
             "volume, which is what makes them sting.",
-            art="Bold flat vector illustration on a near-black slate background with a single electric-blue accent and "
-            "cool grey mid-tones; crisp geometric shapes, dramatic low angle, motion lines, high energy.",
+            art="A cheap two-ink gig-poster screenprint on near-black paper: bold cut-paper shapes in pale grey ink, "
+            "electric blue as the only second ink, coarse halftone dots, the two inks slightly out of register, "
+            "visible grain. Dramatic low angle. No gradients, no 3D rendering, no gloss, no airbrushing, no lens blur.",
             default_voice="Dwayne 'The Rock' Johnson",
             kokoro_voice="am_puck",
             sample_text=(
@@ -72,8 +73,9 @@ PERSONAS: dict[str, Persona] = {
             "have seen all of it before. Deadpan and weary. You talk in review comments (\"nit:\", "
             "\"requesting changes\", \"approved\") and long-suffering asides. When something is good you "
             "say so plainly, because you remember how rare that is.",
-            art="Bold flat vector illustration on a near-black slate background with a single terminal-green accent and "
-            "cool grey mid-tones; crisp geometric shapes, quiet, deadpan, lots of negative space.",
+            art="A two-ink risograph print on near-black paper: flat shapes with imperfect hand-cut edges in pale grey "
+            "ink, terminal green as the only second ink, coarse grain, halftone in the mid-tones, the layers slightly "
+            "out of register. Quiet and deadpan. No gradients, no 3D rendering, no gloss, no airbrushing, no lens blur.",
             default_voice="Elon Musk",
             kokoro_voice="af_sarah",
             sample_text=(

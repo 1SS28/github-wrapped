@@ -40,10 +40,11 @@ class Artwork:
 
 def prompt_for(visual: str, art_direction: str) -> str:
     """The beat's scene is the subject; the narrator's art direction only sets palette and style."""
-    scene = visual.strip().rstrip(".") or "an abstract arrangement of soft geometric shapes"
+    scene = visual.strip().rstrip(".") or "an empty desk under a single lamp late at night"
     return (
-        f"{scene}. One clear subject, large and centred in the upper two thirds of a tall frame, against a simple "
-        f"background, with calm empty space across the lower third. {art_direction} {NO_PEOPLE}"
+        f"{scene}. Drawn like a single frame from a graphic novel: cropped close, off-centre, from an ordinary eye level, "
+        f"full-bleed to every edge with no border or panel outline; the subject sits in the upper two thirds and the "
+        f"lower third falls away into dark, quiet paper. Every object plain and unbranded. {art_direction} {NO_PEOPLE}"
     )
 
 

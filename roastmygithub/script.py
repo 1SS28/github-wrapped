@@ -220,9 +220,14 @@ each id is used at most once. While a beat plays, its "on screen" text is shown 
 line should land on that figure rather than read it out like a label.
 - Mark each beat's tone. At least {minimums["roast"]} beats are roasts and at least {minimums["compliment"]} \
 {"is a compliment" if minimums["compliment"] == 1 else "are compliments"}. Mix them rather than grouping them.
-- Each beat also names its visual: one concrete object or scene a flat-vector illustrator could draw that \
-makes the joke visible (a desk lamp burning at 3 AM, tombstones shaped like folders, a highway with no toll \
-booths). Never people, faces, hands, text or numbers; the figure is typeset over the picture separately.
+- Each beat also names its visual: one specific, slightly absurd scene from a developer's real surroundings \
+that makes this particular joke visible, the kind of detail a person would notice rather than a symbol \
+(a laptop left open on an unmade bed at 4 AM, its glow the only light; eleven freshly taped cardboard boxes in \
+an empty room; a desk chair still spinning in front of an empty desk; a mug of coffee gone cold with a skin on \
+it). Never a stock metaphor: no rockets, light bulbs, seedlings or sprouting plants, roads or highways, \
+mountains, trophies, gears, puzzle pieces, targets, chess pieces, ropes or threads, brains or crowns. Never \
+people, faces, hands, text or numbers, and nothing that carries writing (calendars, signs, labels, screens); \
+the figure is typeset over the picture separately.
 - Beat 1 is the cold open: the fact is in its first sentence, and their name comes after it. Order the rest for comedy: \
 build, and keep the strongest for last.
 - <context> is there for callbacks and colour; do not build a beat on it.

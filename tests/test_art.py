@@ -11,9 +11,9 @@ def client(fake):
 
 def test_prompts_carry_the_art_direction_and_the_no_people_rule():
     prompt = art.prompt_for("a desk lamp at 3 AM", "Flat vector, green and yellow.")
-    assert prompt.startswith("a desk lamp at 3 AM. One clear subject") and "Flat vector, green and yellow." in prompt
+    assert prompt.startswith("a desk lamp at 3 AM. Drawn like a single frame") and "no border" in prompt and "Flat vector, green and yellow." in prompt
     assert "No people" in prompt and "no numbers" in prompt
-    assert "abstract arrangement" in art.prompt_for("", "x")
+    assert "empty desk" in art.prompt_for("", "x")
 
 
 def test_one_image_per_beat_plus_clips_for_heroes(tmp_path):

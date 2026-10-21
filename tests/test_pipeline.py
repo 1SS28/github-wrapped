@@ -110,7 +110,7 @@ def test_render_clones_each_line_and_animates_the_year_without_a_presenter(tmp_p
     assert {body["style"]["voice_name"] for path, body in fake.created if path == "/v1/ai-voice-generator"} == {"David Attenborough"}  # the professor's default voice
     assert report["voice"] == "David Attenborough" and report["video"].endswith("roast_me_professor_david-attenborough.mp4")
     prompts = [body["style"]["prompt"] for path, body in fake.created if path == "/v1/ai-image-generator"]
-    assert all("No people" in p and "Bold flat vector" in p for p in prompts)
+    assert all("No people" in p and "etching-style print" in p for p in prompts)
     voice = json.loads((tmp_path / "out" / "professor" / "voice.json").read_text())
     assert len(voice["lines"]) == 6 and voice["lines"][0]["start"] == 0
     assert all(a["end"] < b["start"] for a, b in zip(voice["lines"], voice["lines"][1:]))  # a pause between lines
