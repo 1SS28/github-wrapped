@@ -1,0 +1,25 @@
+# fly launch --no-deploy --copy-config, then: fly secrets set GITHUB_TOKEN=... LLM_API_KEY=... LLM_MODEL=claude-sonnet-5-5
+app = "wrapped-2026-engine"
+primary_region = "yyz"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  LLM_MODEL = "claude-sonnet-5-5"
+  ROAST_WEB_ORIGIN = "https://github-wrapped-2026.vercel.app,https://roastmygithub-two.vercel.app"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+
+[[mounts]]
+  source = "roast_data"
+  destination = "/data"
+
+[[vm]]
+  size = "shared-cpu-2x"
+  memory = "2gb"

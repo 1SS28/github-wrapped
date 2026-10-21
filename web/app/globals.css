@@ -1,0 +1,108 @@
+@import "tailwindcss";
+
+:root {
+  /* GitHub's dark palette: canvas, raised panels, borders, text */
+  --background: #0d1117;
+  --panel: #161b22;
+  --border: #30363d;
+  --foreground: #e6edf3;
+  --dim: #8b949e;
+  --accent: #3fb950;
+  --top: #161b22;
+  --bottom: #0d1117;
+  --roast: #f85149;
+  --props: #3fb950;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-dim: var(--dim);
+  --color-panel: var(--panel);
+  --color-border: var(--border);
+  --color-accent: var(--accent);
+  --color-roast: var(--roast);
+  --color-props: var(--props);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-serif: var(--font-tinos);
+}
+
+/* GitHub's contribution-graph greens */
+:root { --lv0: #161b22; --lv1: #0e4429; --lv2: #006d32; --lv3: #26a641; --lv4: #39d353; }
+
+/* One palette per narrator, the same ones the video uses. */
+[data-persona="professor"] { --accent: #d29922; }
+[data-persona="hype"] { --accent: #58a6ff; }
+[data-persona="senior"] { --accent: #3fb950; }
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+}
+
+@keyframes kenburns {
+  from { transform: scale(1) translateX(0); }
+  to { transform: scale(1.1) translateX(-2.5%); }
+}
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(28px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pop {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.kenburns { animation: kenburns 14s ease-out forwards; }
+.rise { animation: rise 0.55s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.pop { animation: pop 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+
+.stage {
+  background: var(--background);
+}
+
+.scrim {
+  background: linear-gradient(180deg, rgba(13, 17, 23, 0) 28%, rgba(13, 17, 23, 0.82) 60%, #0d1117 100%);
+}
+
+.hairline { border: 1px solid var(--border); }
+.panel { background: var(--panel); border: 1px solid var(--border); }
+
+@keyframes shake {
+  0%, 100% { transform: translate(0, 0) rotate(0); }
+  20% { transform: translate(-6px, 2px) rotate(-2deg); }
+  40% { transform: translate(6px, -2px) rotate(2deg); }
+  60% { transform: translate(-4px, 1px) rotate(-1deg); }
+  80% { transform: translate(4px, -1px) rotate(1deg); }
+}
+
+@keyframes slam {
+  0% { opacity: 0; transform: scale(3); }
+  60% { opacity: 1; transform: scale(0.92); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes confetti {
+  0% { transform: translateY(-10vh) rotate(0); opacity: 1; }
+  100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+}
+
+@keyframes glow {
+  0%, 100% { text-shadow: 0 0 20px color-mix(in srgb, var(--tier) 60%, transparent); }
+  50% { text-shadow: 0 0 60px var(--tier), 0 0 120px color-mix(in srgb, var(--tier) 50%, transparent); }
+}
+
+.shake { animation: shake 0.45s ease-in-out both; }
+.slam { animation: slam 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.glow { animation: glow 1.6s ease-in-out infinite; }
+.confetti { position: absolute; top: 0; width: 10px; height: 16px; animation: confetti linear both; }
+
+.rule { border-top: 1px solid var(--border); }
+.btn { border: 1px solid var(--border); background: var(--panel); color: var(--foreground); padding: 0.7rem 1rem; border-radius: 6px; font-weight: 600; font-size: 0.9rem; text-align: center; }
+.btn:hover { border-color: #8b949e; }
+.btn-primary { background: #238636; border-color: #2ea043; color: #fff; }
+.btn-primary:hover { background: #2ea043; }

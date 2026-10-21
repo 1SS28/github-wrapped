@@ -1,0 +1,36 @@
+[project]
+name = "roastmygithub"
+version = "0.1.0"
+description = "Turn your own last 12 months on GitHub into a 60-second roast video with Magic Hour."
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.11"
+dependencies = [
+    "anthropic>=1.11,<2",
+    "httpx>=0.27",
+    "pillow>=10",
+    "pydantic>=2.7",
+    "pydantic-settings>=2.3",
+    "rich>=13.7",
+    "typer>=0.12",
+]
+
+[project.optional-dependencies]
+openai = ["openai>=1.40"]
+web = ["fastapi>=0.115", "uvicorn[standard]>=0.30", "python-multipart>=0.0.9"]
+dev = ["pytest>=8", "fastapi>=0.115", "httpx>=0.27"]
+
+[project.scripts]
+roastmygithub = "roastmygithub.cli:app"
+
+[build-system]
+requires = ["hatchling>=1.26"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["core", "roastmygithub", "api"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

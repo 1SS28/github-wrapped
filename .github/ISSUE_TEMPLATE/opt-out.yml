@@ -1,0 +1,16 @@
+name: Opt out of Roast My GitHub
+description: Ask for your GitHub account to be excluded from lookups.
+title: "Opt out: @"
+labels: ["opt-out"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Open this issue from the account you want excluded. Once merged into OPTOUT.md the
+        hosted app and the CLI refuse to look that account up.
+  - type: checkboxes
+    attributes:
+      label: Confirmation
+      options:
+        - label: I am opening this issue from the account I want excluded.
+          required: true

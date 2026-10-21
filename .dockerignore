@@ -1,0 +1,14 @@
+# Only what the Dockerfile copies goes to the builder: never keys, caches or local output.
+.env
+.env.*
+!.env.example
+.venv
+.venv-tools
+.pytest_cache
+.claude
+.github
+out
+web
+tests
+tools
+**/__pycache__
