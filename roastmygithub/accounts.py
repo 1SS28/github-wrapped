@@ -109,6 +109,23 @@ class Quota:
             json.dump(counts, fh)
             return self.per_user - mine - 1
 
+    def give_back(self, visitor: Visitor, *, now: datetime | None = None) -> None:
+        """Undo one `take`: the roast it paid for was never written."""
+        path = self._file(now)
+        with open(path, "a+", encoding="utf-8") as fh:
+            fcntl.flock(fh, fcntl.LOCK_EX)
+            fh.seek(0)
+            raw = fh.read()
+            counts: dict[str, int] = json.loads(raw) if raw.strip() else {}
+            key = str(visitor.id)
+            if counts.get(key, 0) > 1:
+                counts[key] -= 1
+            else:
+                counts.pop(key, None)
+            fh.seek(0)
+            fh.truncate()
+            json.dump(counts, fh)
+
     def remaining(self, visitor: Visitor, *, now: datetime | None = None) -> int:
         path = self._file(now)
         try:

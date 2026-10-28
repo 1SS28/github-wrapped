@@ -1,7 +1,7 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
 import DemoPhone from "@/components/DemoPhone";
 import { ORIGINAL_VOICE, PERSONAS, getSession, getVoices, signInUrl, type VoiceList } from "@/lib/api";
 import { BRAND } from "@/lib/brand";
@@ -14,6 +14,20 @@ const SAMPLES: Record<string, string> = {
 };
 
 const FALLBACK_DEFAULTS: Record<string, string> = { professor: "David Attenborough", hype: "Dwayne 'The Rock' Johnson", senior: "Elon Musk" };
+
+/** The sign-in route sends people back with ?signin=failed when GitHub did not complete it. */
+function SignInNotice() {
+  if (useSearchParams().get("signin") !== "failed") return null;
+  return (
+    <p className="mt-4 text-sm text-roast">
+      The sign-in with GitHub didn&apos;t go through.{" "}
+      <a href={signInUrl("/")} className="underline hover:text-foreground">
+        Try again
+      </a>
+      .
+    </p>
+  );
+}
 
 export default function Home() {
   const router = useRouter();
@@ -70,6 +84,9 @@ export default function Home() {
             GitHub <span className="text-accent">Wrapped</span>
           </h1>
           <p className="mt-4 font-serif text-2xl sm:text-3xl text-foreground/90">Your year on GitHub, roasted.</p>
+          <Suspense>
+            <SignInNotice />
+          </Suspense>
           <p className="mt-5 text-lg text-foreground/75 leading-relaxed">
             Type a username. A famous voice reads back twelve months of commits, late nights and empty streaks, then ranks the
             year from F to SSS.

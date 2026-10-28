@@ -32,7 +32,7 @@ curl https://<app>.fly.dev/api/health
 
 - `GITHUB_TOKEN` only needs public read access (a fine-grained token with no repository
   permissions is enough); it reads public profiles, not yours.
-- The LLM key pays for one script per login, persona and voice style per day: about $0.04 with Sonnet 5.5 (measured 2026-10-20). Haiku 4.5 is about $0.016 but its jokes are flatter and it keeps the stock "that's not X, that's Y" phrasing; Opus 5.5 is about $0.08 and the funniest. A wrap that has paid Magic Hour art and voice keeps its script past the day.
+- The LLM key pays for one script per login, persona and voice style, written once and kept (there is no public refresh): about $0.04 with Sonnet 5.5 (measured 2026-10-20). Haiku 4.5 is about $0.016 but its jokes are flatter and it keeps the stock "that's not X, that's Y" phrasing; Opus 5.5 is about $0.08 and the funniest. Paid Magic Hour art and voice are tied to those lines.
 - Magic Hour keys are never configured on the server: visitors supply their own per request.
 - `ROAST_RATE_LIMIT` (default 20 requests a minute per IP) and `ROAST_JOB_WORKERS` (default 4)
   are tunable in `[env]`.

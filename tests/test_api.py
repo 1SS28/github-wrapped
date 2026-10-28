@@ -238,3 +238,68 @@ def test_balance_reads_the_visitors_magic_hour_account(signed_world):
     client, _, _ = signed_world
     ok = client.post("/api/magic-hour/balance", json={"magic_hour_key": "mh-test-key-0123456789"})
     assert ok.status_code == 200 and ok.json()["credits"] == 50_000
+
+
+def test_the_job_routes_need_sign_in_for_a_wrap_that_does_not_exist_yet(signed_world):
+    client, gh_api, _ = signed_world
+    body = {"persona": "senior", "magic_hour_key": "mh-test-key-0123456789", "heroes": 0}
+    refused = wait(client, client.post("/api/wrap/newcomer/magic", json=body).json())
+    assert refused["status"] == "error" and refused["code"] == 401
+    refused = wait(client, client.post("/api/wrap/newcomer/video", json=body).json())
+    assert refused["status"] == "error" and refused["code"] == 401
+    assert not gh_api.calls  # nothing was looked up, let alone written, for an anonymous caller
+    done = wait(client, client.post("/api/wrap/newcomer/magic", json=body, headers=token()).json())
+    assert done["status"] == "done"
+    assert client.get("/api/wrap/newcomer?persona=senior", headers=token()).json()["remaining"] == 2  # that roast was counted
+
+
+def test_a_typo_or_a_failed_script_does_not_cost_a_roast(signed_world, monkeypatch):
+    client, gh_api, _ = signed_world
+    gh_api.user_missing = True
+    missing = client.get("/api/wrap/nobody?persona=senior", headers=token())
+    assert missing.status_code == 404
+    gh_api.user_missing = False
+
+    class Refusing:
+        model = "fake"
+
+        def json(self, **_):
+            raise RuntimeError("spend limit reached")
+
+    service = client.app.state.service
+    working = service.make_llm
+    monkeypatch.setattr(service, "make_llm", lambda: Refusing())
+    assert client.get("/api/wrap/someone?persona=senior", headers=token()).status_code == 503
+    assert client.get("/api/wrap/four?persona=senior", headers=token()).status_code == 503
+    monkeypatch.setattr(service, "make_llm", working)
+    assert client.get("/api/wrap/four?persona=senior", headers=token()).json()["remaining"] == 2  # all three were still there
+
+
+def test_an_old_wrap_still_opens_for_anyone(signed_world):
+    import json
+
+    client, _, _ = signed_world
+    made = client.get("/api/wrap/someone?persona=hype", headers=token()).json()
+    path = client.app.state.service.wrap_path("someone", "hype", "brutal", made["voice"])
+    data = json.loads(path.read_text())
+    data["cached_at"] = "2026-01-01T00:00:00Z"  # months old, and no Magic Hour assets
+    path.write_text(json.dumps(data))
+    again = client.get("/api/wrap/someone?persona=hype")  # a shared link, no sign-in
+    assert again.status_code == 200 and again.json()["cached_at"].startswith("2026-01-01")
+
+
+def test_an_unknown_persona_is_a_422_not_a_crash(world):
+    client, _, _ = world
+    for url in ("/api/wrap/someone?persona=bogus", "/api/wrap/someone?persona=bogus&cached=true"):
+        response = client.get(url)
+        assert response.status_code == 422 and "unknown persona" in response.json()["error"]
+
+
+def test_files_save_as_a_download_when_asked(world):
+    client, _, _ = world
+    client.get("/api/wrap/someone?persona=senior")
+    job = wait(client, client.post("/api/wrap/someone/magic", json={"persona": "senior", "magic_hour_key": "mh-test-key-0123456789", "heroes": 0}).json())
+    audio = job["result"]["audio"].split("/files/", 1)[1]
+    assert "content-disposition" not in client.get(f"/files/{audio}").headers
+    saved = client.get(f"/files/{audio}?download=1")
+    assert saved.status_code == 200 and saved.headers["content-disposition"] == 'attachment; filename="voice.wav"'

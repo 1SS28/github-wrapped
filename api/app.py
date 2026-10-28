@@ -1,6 +1,6 @@
 """HTTP front for the engine (FastAPI), deployed on Fly.io behind the Vercel site.
 
-  GET  /api/wrap/{login}?persona=senior        the free part: stats, highlights, script (cached per day)
+  GET  /api/wrap/{login}?persona=senior        the free part: stats, highlights, script (written once, then kept)
   POST /api/wrap/{login}/magic                 {persona, magic_hour_key} -> job: Magic Hour art + voice on that key
   POST /api/wrap/{login}/video                 {persona, magic_hour_key} -> job: the mp4
   GET  /api/jobs/{id}                          job status; `result` carries file URLs when done
@@ -33,7 +33,7 @@ from pydantic import BaseModel, Field
 from roastmygithub import voices
 from roastmygithub.accounts import AuthError, Quota, QuotaExceeded, Visitor, verify
 from roastmygithub.personas import PERSONAS
-from roastmygithub.service import Service, ServiceError, key_fingerprint
+from roastmygithub.service import Gate, Service, ServiceError, key_fingerprint
 
 log = logging.getLogger("roastmygithub.api")
 JOB_WORKERS = int(os.environ.get("ROAST_JOB_WORKERS", "4"))
@@ -108,7 +108,11 @@ class MediaFiles(StaticFiles):
     async def get_response(self, path: str, scope: Any) -> Any:
         if Path(path).suffix.lower() not in self.MEDIA or path.replace("\\", "/").startswith("_jobs"):
             raise HTTPException(404, "not found")
-        return await super().get_response(path, scope)
+        response = await super().get_response(path, scope)
+        # The site is on another origin, so a plain <a download> would only open the file; ?download=1 saves it.
+        if b"download=1" in scope.get("query_string", b"") and response.status_code == 200:
+            response.headers["content-disposition"] = f'attachment; filename="{Path(path).name}"'
+        return response
 
 
 class RateLimiter:
@@ -162,20 +166,23 @@ def create_app(service: Service | None = None, *, session_secret: str | None = N
         except AuthError:
             return None
 
-    def gate(visitor: Visitor | None) -> Callable[[], None]:
-        """Runs only when a wrap has to be written from scratch: that is the step the site pays for."""
+    def gate(visitor: Visitor | None) -> Gate:
+        """Runs only when a wrap has to be written from scratch: that is the step the site pays for.
+        The same gate guards the job routes, which write the wrap too when it does not exist yet."""
+        if not secret:
+            return Gate()
 
         def check() -> None:
-            if not secret:
-                return
             if visitor is None:
                 raise ServiceError("Sign in with GitHub to make a new roast. Wraps someone already made open without signing in.", 401, "sign_in_required")
+
+        def spend() -> None:
             try:
-                quota.take(visitor)
+                quota.take(visitor)  # type: ignore[arg-type]  # check() ran first
             except QuotaExceeded as exc:
                 raise ServiceError(str(exc), 429, "quota" if exc.scope == "user" else "site_quota") from exc
 
-        return check
+        return Gate(check, spend, lambda: quota.give_back(visitor))  # type: ignore[arg-type]
 
     @app.get("/api/health")
     def health() -> dict[str, Any]:
@@ -206,7 +213,7 @@ def create_app(service: Service | None = None, *, session_secret: str | None = N
         else:
             limiter.check(client_key(request))
             visitor = visitor_of(request)
-            result = service.wrap(login, persona, heat=heat, voice=chosen, before_generate=gate(visitor))
+            result = service.wrap(login, persona, heat=heat, voice=chosen, gate=gate(visitor))
         clean = login.strip().lstrip("@")  # folders are keyed by the requested login
         assets = service.assets_for(clean, persona, chosen, heat, result.script)  # only art and voice made for these lines
         data = result.model_dump(mode="json")
@@ -233,10 +240,10 @@ def create_app(service: Service | None = None, *, session_secret: str | None = N
     def magic(login: str, body: MagicRequest, request: Request) -> dict[str, Any]:
         limiter.check(client_key(request))
         log.info("magic for %s by key %s", login, key_fingerprint(body.magic_hour_key))
-        key = body.magic_hour_key
+        key, who = body.magic_hour_key, gate(visitor_of(request))
 
         def work() -> dict[str, Any]:
-            assets = service.magic(login, body.persona, key, heroes=body.heroes, voice=body.voice, heat=body.heat)
+            assets = service.magic(login, body.persona, key, heroes=body.heroes, voice=body.voice, heat=body.heat, gate=who)
             return _asset_urls(request, assets.model_dump())
 
         return jobs.submit("magic", work)
@@ -244,10 +251,10 @@ def create_app(service: Service | None = None, *, session_secret: str | None = N
     @app.post("/api/wrap/{login}/video", status_code=202)
     def video(login: str, body: MagicRequest, request: Request) -> dict[str, Any]:
         limiter.check(client_key(request))
-        key = body.magic_hour_key
+        key, who = body.magic_hour_key, gate(visitor_of(request))
 
         def work() -> dict[str, Any]:
-            return {"video": file_url(request, service.video(login, body.persona, key, voice=body.voice, heat=body.heat))}
+            return {"video": file_url(request, service.video(login, body.persona, key, voice=body.voice, heat=body.heat, gate=who))}
 
         return jobs.submit("video", work)
 

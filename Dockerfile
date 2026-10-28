@@ -15,4 +15,5 @@ RUN pip install --no-cache-dir -e ".[web]"
 ENV ROASTMYGITHUB_CACHE_DIR=/data/cache ROAST_OUT_DIR=/data/out PORT=8080
 VOLUME ["/data"]
 EXPOSE 8080
-CMD ["uvicorn", "api.app:app", "--host", "0.0.0.0", "--port", "8080", "--workers", "2"]
+# --proxy-headers: Fly's proxy terminates TLS, so without it every file URL the API builds says http://.
+CMD ["uvicorn", "api.app:app", "--host", "0.0.0.0", "--port", "8080", "--workers", "2", "--proxy-headers", "--forwarded-allow-ips", "*"]

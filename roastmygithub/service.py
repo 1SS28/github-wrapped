@@ -1,7 +1,8 @@
 """The engine as three calls, for the web app.
 
   wrap(login)            public GitHub data -> stats, highlights, script. Runs on the site owner's
-                         GitHub token and LLM key; cached per login, persona and day.
+                         GitHub token and LLM key; written once per login, persona and voice style,
+                         then kept, so a link someone posted keeps working.
   magic(login, key)      Magic Hour art and voice for that wrap, on the VISITOR's own key. The key
                          is used for the calls and never written anywhere.
   video(login, key)      the mp4, from the cached art and voice (drawn locally).
@@ -44,6 +45,21 @@ LOGIN_OK = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-"
 
 
 log = logging.getLogger("roastmygithub.service")
+
+
+def _nothing() -> None:
+    return None
+
+
+class Gate:
+    """What the API wants to know before a new wrap is written on the site's keys.
+
+    `check` runs first (who is asking: sign-in), `spend` right before the LLM call (the daily quota),
+    and `refund` if that call fails, so a GitHub typo or an LLM outage never costs a roast.
+    """
+
+    def __init__(self, check: Callable[[], None] = _nothing, spend: Callable[[], None] = _nothing, refund: Callable[[], None] = _nothing):
+        self.check, self.spend, self.refund = check, spend, refund
 
 
 class ServiceError(RuntimeError):
@@ -142,17 +158,15 @@ class Service:
         refresh: bool = False,
         heat: str = "brutal",
         voice: str | None = None,
-        before_generate: Callable[[], None] | None = None,
+        gate: Gate | None = None,
     ) -> Wrap:
-        """Stats and script for one login, persona and heat, cached for a day.
+        """Stats and script for one login, persona and heat, written once and then kept.
 
         Voices with a known way of talking (voice_styles) get a script of their own; every other voice
-        shares the persona's. A wrap that already has paid art and voice is kept past the day, so the
-        visitor's credits are never thrown away by a rewrite.
+        shares the persona's. An existing wrap is served whatever its age (only `refresh` rewrites it):
+        people post these links, and paid art and voice are tied to the lines.
         """
         login = check_login(login)
-        if persona not in PERSONAS:
-            raise ServiceError(f"unknown persona '{persona}'", 422)
         if heat not in HEATS:
             raise ServiceError(f"unknown heat '{heat}'", 422)
         voice = self.resolve_voice(persona, voice)
@@ -162,14 +176,11 @@ class Service:
         with self._lock(f"{login}/{persona}/{heat}/{styled}"):
             if cache.exists() and not refresh:
                 try:
-                    wrap = Wrap.model_validate_json(cache.read_text(encoding="utf-8"))
+                    return Wrap.model_validate_json(cache.read_text(encoding="utf-8"))
                 except ValueError:
-                    wrap = None  # written by an older version: rebuild it
-                fresh = wrap and datetime.now(timezone.utc) - wrap.cached_at < timedelta(hours=24)
-                if wrap and (fresh or self.assets_for(login, persona, voice, heat, wrap.script)):
-                    return wrap
-            if before_generate:
-                before_generate()  # a new roast is about to be paid for: sign-in and quota checks go here
+                    pass  # written by an older version: rebuild it
+            gate = gate or Gate()
+            gate.check()
             activity = self._activity(login, refresh=refresh)
             stats = compute_stats(activity, include_private=False, tz=local_timezone(self.settings.roast_timezone))
             highlights = pick(stats)
@@ -177,10 +188,12 @@ class Service:
                 raise ServiceError(f"@{login} has too little public activity in the last 12 months to wrap", 404)
             ledger = CostLedger(folder / "ledger.jsonl")
             llm = self.make_llm()
+            gate.spend()  # the one step the site pays for
             try:
                 script = write_script(stats, highlights, PERSONAS[persona], llm, seconds=60, heat=heat, voice=styled, ledger=ledger)
             except Exception as exc:  # the monthly spend limit, an outage, or a script with nothing usable in it
                 log.warning("script for %s/%s failed: %s", login, persona, exc)
+                gate.refund()
                 raise ServiceError("Couldn't write a new roast right now. Try again in a little while.", 503) from exc
             wrap = Wrap(
                 login=stats.login, name=stats.name, persona=persona, since=stats.since, until=stats.until,
@@ -226,6 +239,8 @@ class Service:
     # -- 2. Magic Hour, on the visitor's key --------------------------------------------
 
     def resolve_voice(self, persona: str, voice: str | None) -> str:
+        if persona not in PERSONAS:
+            raise ServiceError(f"unknown persona '{persona}'", 422)
         try:
             return voices.check(voice) if voice else voices.check(PERSONAS[persona].default_voice)
         except ValueError as exc:
@@ -243,11 +258,11 @@ class Service:
         data = json.loads(path.read_text(encoding="utf-8"))
         return data if [line.get("text") for line in data.get("lines", [])] == script.lines else None
 
-    def magic(self, login: str, persona: str, magic_hour_key: str, *, heroes: int = 2, voice: str | None = None, heat: str = "brutal") -> Assets:
+    def magic(self, login: str, persona: str, magic_hour_key: str, *, heroes: int = 2, voice: str | None = None, heat: str = "brutal", gate: Gate | None = None) -> Assets:
         if not magic_hour_key or len(magic_hour_key) < 20:
             raise ServiceError("a Magic Hour API key is needed for the art and the voice", 401)
         voice = self.resolve_voice(persona, voice)
-        wrap = self.wrap(login, persona, heat=heat, voice=voice)
+        wrap = self.wrap(login, persona, heat=heat, voice=voice, gate=gate)
         folder = self.folder(login, persona)
         p: Persona = PERSONAS[persona]
         script = wrap.script
@@ -285,13 +300,13 @@ class Service:
         dest, assets = self.video_path(login, persona, voice, heat), self.assets_path(login, persona, voice, heat)
         return dest.exists() and assets.exists() and dest.stat().st_mtime >= assets.stat().st_mtime
 
-    def video(self, login: str, persona: str, magic_hour_key: str, *, voice: str | None = None, heat: str = "brutal") -> str:
+    def video(self, login: str, persona: str, magic_hour_key: str, *, voice: str | None = None, heat: str = "brutal", gate: Gate | None = None) -> str:
         """The mp4, as a path relative to the file root. Needs the art and voice (made here if missing)."""
         voice = self.resolve_voice(persona, voice)
-        wrap = self.wrap(login, persona, heat=heat, voice=voice)
+        wrap = self.wrap(login, persona, heat=heat, voice=voice, gate=gate)
         folder = self.folder(login, persona)
         current = self.assets_for(login, persona, voice, heat, wrap.script)
-        assets = Assets.model_validate(current) if current else self.magic(login, persona, magic_hour_key, voice=voice, heat=heat)
+        assets = Assets.model_validate(current) if current else self.magic(login, persona, magic_hour_key, voice=voice, heat=heat, gate=gate)
         dest = self.video_path(login, persona, voice, heat)
         with self._lock(f"{login}/{persona}/{voice}/video"):
             if self.video_ready(login, persona, voice, heat):

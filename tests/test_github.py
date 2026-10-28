@@ -146,3 +146,13 @@ def test_repositories_hidden_from_the_token_are_skipped(api):
         activity = github.collect(gh, since=SINCE, until=UNTIL, login="someone")
     assert activity["owned"] == []
     api._owned_repo = original
+
+
+def test_an_unreadable_reply_is_retried_then_reported(monkeypatch):
+    monkeypatch.setattr(github.time, "sleep", lambda _s: None)
+    replies = iter([httpx.Response(200, text="<html>502</html>"), httpx.Response(200, json={"data": {"viewer": {"login": "me"}}})])
+    gh = github.GitHub("t", transport=httpx.MockTransport(lambda request: next(replies)))
+    assert gh.whoami() == "me"
+    broken = github.GitHub("t", transport=httpx.MockTransport(lambda request: httpx.Response(200, text="")))
+    with pytest.raises(github.GitHubError, match="unreadable"):
+        broken.whoami()

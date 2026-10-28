@@ -33,8 +33,10 @@ private repos appear as "private repo".
 
 **The website** works from public data only. Its GitHub token can read public repositories and
 nothing else, so a wrap there never contains private work. Anyone can open a wrap that already
-exists; writing a new one needs Sign in with GitHub, and is limited to 3 a day per account and 300
-a day across the site. Your Magic Hour key is used for that request only, and the server logs
+exists, however old it is; writing a new one needs Sign in with GitHub, and is limited to 3 a day
+per account and 300 a day across the site. Each narrator, and each voice with its own way of
+talking, is a new script and so a new roast. A login that does not exist, has too little
+activity, or whose script fails is not counted. Your Magic Hour key is used for that request only, and the server logs
 just a fingerprint of it.
 
 **Opting out:** logins listed in [OPTOUT.md](OPTOUT.md) are never looked up by the website, the

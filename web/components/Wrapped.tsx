@@ -279,7 +279,7 @@ function EndCard({ wrap, shown, onMagic, onReplay, busy }: { wrap: Wrap; shown: 
             {busy ? "Magic Hour is drawing…" : "Illustrate and voice it with Magic Hour"}
           </button>
         ) : wrap.video ? (
-          <a href={wrap.video} download className="btn btn-primary">
+          <a href={`${wrap.video}?download=1`} className="btn btn-primary">
             Download the video
           </a>
         ) : (
@@ -552,7 +552,7 @@ export default function Wrapped({ login, persona, voice }: { login: string; pers
       <main data-persona={persona} className="flex-1 flex flex-col items-center justify-center p-8 text-center">
         <div className="font-mono text-xs text-dim">{login} / reading twelve months</div>
         <p className="mt-4 font-serif text-3xl animate-pulse">{PERSONAS[persona]?.title ?? "The narrator"} is going through the commits.</p>
-        <p className="mt-2 text-dim text-sm">About twenty seconds the first time.</p>
+        <p className="mt-2 text-dim text-sm">About twenty seconds the first time; a busy year takes a minute.</p>
       </main>
     );
   }

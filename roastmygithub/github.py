@@ -174,7 +174,14 @@ class GitHub:
                 raise GitHubError(f"GitHub returned HTTP {response.status_code}", transient=True)
             if response.is_error:
                 raise GitHubError(f"GitHub returned HTTP {response.status_code}: {response.text[:300]}")
-            body = response.json()
+            try:
+                body = response.json()
+            except ValueError:  # a cut-off or HTML reply with a 200 on it: seen once on a very busy account
+                if attempt < retries:
+                    attempt += 1
+                    time.sleep(2**attempt)
+                    continue
+                raise GitHubError("GitHub sent back an unreadable reply", transient=True) from None
             errors = body.get("errors") or []
             fatal = [e for e in errors if e.get("type") not in _TOLERATED]
             if fatal or (errors and not body.get("data")):
