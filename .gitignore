@@ -12,3 +12,4 @@ out/web/
 .venv-tools/
 .DS_Store
 .claude/settings.local.json
+.vercel

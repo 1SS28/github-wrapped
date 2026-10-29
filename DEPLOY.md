@@ -40,11 +40,14 @@ curl https://<app>.fly.dev/api/health
 ## 2. Site on Vercel
 
 ```bash
-cd web
-vercel link
+vercel link                                      # from the repo root; the project's Root Directory is `web`
 vercel env add NEXT_PUBLIC_API_URL production   # https://<app>.fly.dev
 vercel --prod
 ```
+
+With the project connected to GitHub (`vercel git connect`, after linking your GitHub account to Vercel
+under Account Settings → Authentication), every push to `main` deploys the site on its own; the engine
+still needs `fly deploy`.
 
 Then put the Vercel URL in `ROAST_WEB_ORIGIN` on Fly (comma-separate several origins) and in
 `roast_repo_url` / the share text if the domain differs from `roastmygithub-two.vercel.app` (the live site since 2026-10-20; `roastmygithub.vercel.app` belongs to someone else).
