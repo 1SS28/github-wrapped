@@ -1,0 +1,6 @@
+# Only the site goes to Vercel; the engine, caches and dependencies stay home.
+*
+!web/
+!web/**
+web/node_modules
+web/.next
