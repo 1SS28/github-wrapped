@@ -1,6 +1,13 @@
 # Only the site goes to Vercel; the engine, caches and dependencies stay home.
-*
-!web/
-!web/**
+.venv
+.venv-tools
+out
 web/node_modules
 web/.next
+core
+roastmygithub
+api
+tests
+tools
+docs
+.claude
