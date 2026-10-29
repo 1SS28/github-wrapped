@@ -17,7 +17,7 @@ it yourself with the command-line tool below.
 
 | | What you get | What you need |
 | --- | --- | --- |
-| **The website** | Stats, highlights and the script for free. Add your Magic Hour key for the illustrations, the voice and the mp4. | A GitHub account to sign in |
+| **The website** | Stats, highlights, the script and your rank for free. Add your Magic Hour key for the illustrations, the voice and the mp4, which you can download or share as a card. | A GitHub account to sign in |
 | **The CLI** (`roastmygithub`) | The same video for your own account, with every option below. | Python, ffmpeg, an LLM key and a Magic Hour key |
 
 ## Privacy
@@ -106,6 +106,25 @@ to use.
 
 The Python engine runs on Fly.io and the Next.js site on Vercel. [DEPLOY.md](DEPLOY.md) has the
 steps, the secrets each side needs, and the checks to run afterwards.
+
+## Recent changes
+
+**2026-10-28**, after a pass over what a visitor could run into on the live site:
+
+- A wrap is written once and kept, so a link you posted keeps working after the day it was made,
+  and opening your own wrap again never silently rewrites it.
+- The daily roast is only counted when a script is actually written. A misspelt login, an
+  organisation, an account with too little activity, or an LLM outage costs nothing.
+- The Magic Hour and video jobs go through the same sign-in and daily cap as the wrap itself.
+- Images, clips and voice are served over https (they were loading as mixed content).
+- "Download the video" saves the file instead of opening it in the tab.
+- An unreadable reply from GitHub (seen on a very busy account) is retried, then explained;
+  a wrong narrator name in a link is a plain error, not a crash; a sign-in that did not go
+  through says so on the homepage.
+
+**2026-10-21**: the video matches the site (no badges, the figure in monospace, the narrator's line
+in a serif that lights up as it is read), and the illustrations are specific scenes in a printed
+style instead of stock symbols.
 
 ## License
 
